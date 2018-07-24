@@ -35,6 +35,12 @@ func_globals['iter_ls'].func_code                                               
 
 It does this by using a `.pth` file which simply performs that injection.
 
+# Security
+
+If you're running this against objects that have properties, lazy attributes or any other dynamic code, keep in mind that `ls` will try to fetch the value of the property/lazy attribute using `getattr()`. This will cause the body of the function to be executed, so you can imagine already the potential hazard here, right?
+
+TODO: make a default `unsafe=False` kwarg and then only visit properties if `unsafe` is explicitly set to `True`.
+
 # About the name `ls`
 
 Python has `dir` as a builtin. The equivalent of that command-line command in GNU/Linux world is `ls`. We had considered calling it `xdir`, which by the way is a function that works like `dir()` by returning you a list of occurrences.
