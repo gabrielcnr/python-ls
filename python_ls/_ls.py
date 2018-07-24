@@ -7,6 +7,15 @@ BAD = object()
 
 
 def ls(obj, attr=None, depth=None, dunder=False, under=True):
+    """
+    Run a recursive find for a named attribute
+    :param obj: Root object to search
+    :param attr: Name of the attribute to search for
+    :param depth: Maximum search depth, defaults to unlimited
+    :param dunder: If True double underscore prefixed attributes are ignored, default is disabled
+    :param under: If True single underscore prefixed attributes are ignored, default is enabled
+    :return: None
+    """
     if depth is None and attr is None:
         depth = 1
 
