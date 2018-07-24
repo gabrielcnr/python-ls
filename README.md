@@ -5,9 +5,25 @@ Sometimes when you're developing using Python's interactive shell, or IPython, o
 
 There must be a better way, right?
 
-Well, now yes, you have `ls` to help you with that task. If you have a roughly idea of what you're looking for, you can search for that "thing" by name (fingers crossed here: hopefully the developers of the APIs/libraries you're dealing with were careful enough about their naming conventions). Even if (often) your target object may be a few levels deep down the object structure.
+Well, now yes, you have `ls` to help you with that task. If you have roughly a good idea of what you're looking for, you can search for that "thing" by name (fingers crossed here: hopefully the developers of the APIs/libraries you're dealing with were careful enough about their naming conventions). Even if (often) your target object may be a few levels deep down the object structure.
 
 `ls` goes recursively thru your object structure, it tries to visit attributes searching for the name you're looking for. It also considers dictionary keys if it stumbles across dictionaries, and in the end it prints out the matching occurrences and tells you which types are the values found.
+
+```python
+>>> ls(ls, 'code', depth=3)
+func_code                                                                             code
+func_code.co_code                                                                      str    200
+func_code.co_code.decode()                                      builtin_function_or_method
+func_code.co_code.encode()                                      builtin_function_or_method
+func_code.co_filename.decode()                                  builtin_function_or_method
+func_code.co_filename.encode()                                  builtin_function_or_method
+func_code.co_lnotab.decode()                                    builtin_function_or_method
+func_code.co_lnotab.encode()                                    builtin_function_or_method
+func_code.co_name.decode()                                      builtin_function_or_method
+func_code.co_name.encode()                                      builtin_function_or_method
+func_globals['xdir'].func_code                                                        code
+func_globals['iter_ls'].func_code                                                     code
+```
 
 # Install
 
