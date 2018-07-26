@@ -1,6 +1,11 @@
 from collections import Container
 
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError:
+    has_pandas = False
+else:
+    has_pandas = True
 
 # sentinel
 BAD = object()
@@ -22,7 +27,7 @@ def ls(obj, attr=None, depth=None, dunder=False, under=True):
     for attr, value in iter_ls(obj, attr=attr, depth=depth,
                                dunder=dunder, under=under):
         size = ''
-        if isinstance(value, pd.DataFrame):
+        if has_pandas and isinstance(value, pd.DataFrame):
             size = '{0}x{1}'.format(*value.shape)
         elif isinstance(value, Container):
             size = len(value)
@@ -73,13 +78,13 @@ def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
 
             if isinstance(obj, dict):
                 attrs = [str(k) for k in obj.keys()]
-            elif isinstance(obj, pd.DataFrame):
+            elif has_pandas and isinstance(obj, pd.DataFrame):
                 attrs = [str(c) for c in obj.columns]
             else:
                 attrs = dir(obj)
 
             for a in attrs:
-                if isinstance(obj, dict) or isinstance(obj, pd.DataFrame):
+                if isinstance(obj, dict) or (has_pandas and isinstance(obj, pd.DataFrame)):
                     new_path = path + '[%r]' % a
                 else:
                     if path:
@@ -88,7 +93,7 @@ def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
                         new_path = a
 
                 try:
-                    if isinstance(obj, dict) or isinstance(obj, pd.DataFrame):
+                    if isinstance(obj, dict) or (has_pandas and isinstance(obj, pd.DataFrame)):
                         val = obj[a]
                     else:
                         val = getattr(obj, a)
