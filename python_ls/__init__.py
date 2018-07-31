@@ -1,9 +1,17 @@
 from ._ls import iter_ls, ls, xdir
 
-try:
-    import __builtin__ as builtins # python 2.7
-except:
-    import builtins # python 3
 
-# injecting the name ls in the builtin namespace
-builtins.ls = ls
+__all__ = ['iter_ls', 'ls', 'xdir']
+
+
+def _inject_builtin():
+    import sys
+    if sys.version_info.major == 2:
+        import __builtin__ as builtins
+    else:
+        import builtins
+
+    builtins.ls = ls
+
+
+_inject_builtin()
