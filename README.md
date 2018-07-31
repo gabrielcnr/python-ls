@@ -1,6 +1,11 @@
 # python-ls
 A better replacement for Python's built-in `dir` function with searching in mind.
 
+[![Build Status](https://travis-ci.org/gabrielcnr/python-ls.svg?branch=master)](https://travis-ci.org/gabrielcnr/python-ls)
+[![PyPI](https://img.shields.io/pypi/v/python-ls.svg)](https://pypi.python.org/pypi/python-ls)
+[![PythonVersions](https://img.shields.io/pypi/pyversions/python-ls.svg)](https://pypi.python.org/pypi/python-ls)
+
+
 Sometimes when you're developing using Python's interactive shell, or IPython, or working with a Jupyter Notebook or even debugging using pdb, you find yourself having to navigate through complex object structures. If you're not entirely familiar with the class in hand you usually have two options: resort to the documentation of the libraries and projects you're working with, or put the explorer's hat on and go down a trial-and-error route, using Python's builtin `dir` function to see which attributes and functions an object may have and then take a good guess on the next object you will be inspecting.
 
 There must be a better way, right?
