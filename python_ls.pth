@@ -1,1 +1,1 @@
-import python_ls; import __builtin__; __builtin__.ls = python_ls.ls
+import python_ls
