@@ -1,0 +1,32 @@
+sudo: false
+language: python
+stages:
+- test
+- name: deploy
+  if: repo = gabrielcnr/python-ls AND tag IS present
+python:
+- '2.7'
+- '3.4'
+- '3.5'
+- '3.6'
+install:
+- pip install --upgrade setuptools pip
+- pip install tox-travis
+script: tox
+jobs:
+  include:
+  - stage: deploy
+    python: '3.6'
+    env:
+    install: pip install -U setuptools setuptools_scm
+    script: skip
+    deploy:
+      provider: pypi
+      user: gabrielcnr
+      distributions: sdist bdist_wheel
+      skip_upload_docs: true
+      password:
+        secure: rxuzdAH3MosxWQTkNngdtZWj9OqQHDTXSW+ZFLD3sblQGNXpj4BNJoeDfx0nNFA3BerVET16aK+3Xs72i/kAujjKi0YkJ9liiTRODjH2JAArPxDe6jqq/CcLsKWi5q6PooN2qJaGyAxpYqtJcYTmoqXwhteIWuyDY/msOMqXgobsklzuYlh8bTjJ7xci0FRETuNMVHqzIyzflJ4ilvR03pPVjZY6wGqNAt22LY5EGHMYFf5wm36hYhzwFDIAAPB83+r2TzJm3411phFvBHoaFh0NZqq0nqRHqPxCBCt6FVkEe8NTdCpNrulaAAD9Ki9h9zp4pqaPTq3Yj4Wkm+Amk+EFOn5X+JLKJFI/PZlpJvvv2pfS9ae0KY+nc34nkCw5fnhz8FBwmbTdjyBPp0UHq3RnAybkaAN3KX1cQF8jJQiqGEaH2zbcoGi6IGxKAaUKTYgomUOvAtdJoSKItDn+S8JMU04j/D9VWLT1JSQu1+AUoHIjmsv/8FcoEs/nCQVMyYBGpZEAyHbr5nk/Gd7Hk9CNNAIcqOUmp4MNOkeqvJiN9ZkEPnehZLZPSqI+vn/OzQlFP2kxF7g7qqInwXpr2cZDENA8PlCLqXYTrGwzEzKKlpCFA8osKef/63lt+oo2oG2vEGD9eREswT6BUIy6OQbzICWuv29I/XDRNYD48AA=
+      on:
+        tags: true
+        repo: gabrielcnr/python-ls
