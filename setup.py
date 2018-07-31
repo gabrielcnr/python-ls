@@ -38,7 +38,6 @@ setup(
     description='A better replacement for Python dir() builtin function',
     long_description=long_description,
     long_description_content_type='text/markdown',
-
     license='MIT',
     keywords='python dir ls search attributes',
     url='http://github.com/gabrielcnr/python-ls',
