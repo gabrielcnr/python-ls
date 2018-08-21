@@ -1,3 +1,4 @@
+import re
 from collections import Container
 
 try:
@@ -23,6 +24,9 @@ def ls(obj, attr=None, depth=None, dunder=False, under=True):
     """
     if depth is None and attr is None:
         depth = 1
+
+    if attr and isinstance(attr, str):
+        attr = re.compile(attr)
 
     for attr, value in iter_ls(obj, attr=attr, depth=depth,
                                dunder=dunder, under=under):
@@ -65,7 +69,7 @@ def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
                 return not a.startswith('_')
 
             def attr_filter_callback(a):
-                return attr in a
+                return not not attr.search(a) or attr.pattern in a
 
             if attr:
                 callbacks.append(attr_filter_callback)
