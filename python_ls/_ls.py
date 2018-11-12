@@ -29,9 +29,12 @@ def ls(obj, attr=None, depth=None, dunder=False, under=True):
         size = ''
         if has_pandas and isinstance(value, pd.DataFrame):
             size = '{0}x{1}'.format(*value.shape)
-        elif isinstance(value, Container):
-            size = len(value)
-
+        else:
+            try:
+                size = len(value)
+            except:
+                pass
+            
         type_name = type(value).__name__
         print('{:<60}{:>20}{:>7}'.format(attr, type_name, size))
 
