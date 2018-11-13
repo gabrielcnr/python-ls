@@ -21,7 +21,7 @@ def ls(obj, attr=None, depth=None, dunder=False, under=True):
     :param under: If True single underscore prefixed attributes are ignored, default is enabled
     :return: None
     """
-    if depth is None and attr is None:
+    if depth is None:
         depth = 1
 
     for attr, value in iter_ls(obj, attr=attr, depth=depth,
@@ -29,8 +29,12 @@ def ls(obj, attr=None, depth=None, dunder=False, under=True):
         size = ''
         if has_pandas and isinstance(value, pd.DataFrame):
             size = '{0}x{1}'.format(*value.shape)
-        elif isinstance(value, Container):
-            size = len(value)
+        else:
+            try:
+                size = len(value)
+            except:
+                pass
+            
         type_name = type(value).__name__
         print('{:<60}{:>20}{:>7}'.format(attr, type_name, size))
 
