@@ -14,7 +14,7 @@ def test_obj():
     o.foo.bar.something = Object()
     o.foo.bar.aaa = Object()
     o.foo.bar.bbb = Object()
-    o.foo.bar._something_else = lambda: None
+    o.foo.bar._something_else = dict  # a callable (lambda recurses infinitely in Python 2.7 when depth=None)
     o.foo.baz = {'something_weird': 'going on', 'blah': 'bleh'}
     o.lala = Object()
     o.lala.lele = Object()
