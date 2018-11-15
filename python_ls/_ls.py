@@ -29,12 +29,8 @@ def ls(obj, attr=None, depth=None, dunder=False, under=True):
         size = ''
         if has_pandas and isinstance(value, pd.DataFrame):
             size = '{0}x{1}'.format(*value.shape)
-        else:
-            try:
-                size = len(value)
-            except:
-                pass
-            
+        elif hasattr(value, '__len__'):
+            size = len(value)
         type_name = type(value).__name__
         print('{:<60}{:>20}{:>7}'.format(attr, type_name, size))
 
@@ -50,7 +46,7 @@ def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
             visited=None, current_depth=1, path=''):
     visited = visited or set()
 
-    if current_depth <= depth:
+    if (depth is None) or (current_depth <= depth):
         if id(obj) not in visited:
             visited.add(id(obj))
 
