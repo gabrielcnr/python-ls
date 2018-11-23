@@ -10,7 +10,7 @@ Sometimes when you're developing using Python's interactive shell, or IPython, o
 
 There must be a better way, right?
 
-Well, now yes, you have `ls` to help you with that task. If you have rough idea of what you're looking for, you can search for that "thing" by name (fingers crossed here: hopefully the developers of the APIs/libraries you're dealing with were careful enough about their naming conventions). Even if (often) your target object may be a few levels deep down the object structure.
+Well, now yes, you have `ls` to help you with that task. If you have rough idea of what you're looking for, you can search for that "thing" by name or a regular expression (fingers crossed here: hopefully the developers of the APIs/libraries you're dealing with were careful enough about their naming conventions). Even if (often) your target object may be a few levels deep down the object structure.
 
 `ls` goes recursively through your object structure, it tries to visit attributes searching for the name you're looking for. It also considers dictionary keys if it stumbles across dictionaries, and in the end it prints out the matching occurrences and tells you their types too.
 
