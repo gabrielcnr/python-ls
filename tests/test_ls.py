@@ -75,6 +75,5 @@ def test_ls_constructor_obj(test_obj, capsys):
     ls(test_obj, 'someconstructor')
     out, err = capsys.readouterr()
     expect = [['foo.bar.someconstructor_obj()', 'type']]
-    import pdb; pdb.set_trace()
     assert expect == [line.split() for line in out.splitlines()]
 
