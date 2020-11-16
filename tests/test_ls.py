@@ -14,8 +14,8 @@ def test_obj():
     o.foo.bar.something = Object()
     o.foo.bar.aaa = Object()
     o.foo.bar.bbb = Object()
-    # a callable (lambda recurses infinitely in Python 2.7 when depth=None)
-    o.foo.bar._something_else = dict
+    o.foo.bar._something_else = lambda: None
+    o.foo.bar.constructor_obj = dict
     o.foo.baz = {'something_weird': 'going on', 'blah': 'bleh'}
     o.lala = Object()
     o.lala.lele = Object()
@@ -53,14 +53,28 @@ def test_depth_is_None(test_obj):
     assert actual == expected
 
 
+def test_iter_ls_constructor_obj(test_obj):
+    expected = ['foo.bar.constructor_obj()']
+
+    actual = [x[0] for x in iter_ls(test_obj, 'constructor', depth=None)]
+    assert actual == expected
+
+
 def test_basic_ls_usage(test_obj, capsys):
     ls(test_obj, 'something')
     out, err = capsys.readouterr()
     expect = [
-        ['foo.bar._something_else()', 'type'],
+        ['foo.bar._something_else()', 'function'],
         ['foo.bar.something', 'Object'],
         ["foo.baz['something_weird']", 'str', '8'],
         ['lala.something', 'Object']
     ]
+    assert expect == [line.split() for line in out.splitlines()]
+
+
+def test_ls_constructor_obj(test_obj, capsys):
+    ls(test_obj, 'constructor')
+    out, err = capsys.readouterr()
+    expect = [['foo.bar.constructor_obj()', 'type']]
     assert expect == [line.split() for line in out.splitlines()]
 

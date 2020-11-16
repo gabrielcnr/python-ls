@@ -30,8 +30,8 @@ def ls(obj, attr=None, depth=None, dunder=False, under=True):
             try:
                 size = len(value)
             except TypeError as exc:
-                # certain objects such as the dict type have __len__
-                # method which raises TypeError
+                # certain constructor object such as dict, list have a
+                # __len__ method but it throws a TypeError
                 pass
         type_name = type(value).__name__
         print('{:<60}{:>20}{:>7}'.format(attr, type_name, size))
