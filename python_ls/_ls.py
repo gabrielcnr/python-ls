@@ -21,16 +21,18 @@ def ls(obj, attr=None, depth=None, dunder=False, under=True):
     :param under: If True single underscore prefixed attributes are ignored, default is enabled
     :return: None
     """
-    if depth is None:
-        depth = 1
-
     for attr, value in iter_ls(obj, attr=attr, depth=depth,
                                dunder=dunder, under=under):
         size = ''
         if has_pandas and isinstance(value, pd.DataFrame):
             size = '{0}x{1}'.format(*value.shape)
         elif hasattr(value, '__len__'):
-            size = len(value)
+            try:
+                size = len(value)
+            except TypeError as exc:
+                # certain constructor object such as dict, list have a
+                # __len__ method but it throws a TypeError
+                pass
         type_name = type(value).__name__
         print('{:<60}{:>20}{:>7}'.format(attr, type_name, size))
 
