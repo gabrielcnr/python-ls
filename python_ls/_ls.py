@@ -1,4 +1,5 @@
 from collections import Container
+from numbers import Number
 
 try:
     import pandas as pd
@@ -21,16 +22,18 @@ def ls(obj, attr=None, depth=None, dunder=False, under=True):
     :param under: If True single underscore prefixed attributes are ignored, default is enabled
     :return: None
     """
-    if depth is None:
-        depth = 1
-
     for attr, value in iter_ls(obj, attr=attr, depth=depth,
                                dunder=dunder, under=under):
         size = ''
         if has_pandas and isinstance(value, pd.DataFrame):
             size = '{0}x{1}'.format(*value.shape)
         elif hasattr(value, '__len__'):
-            size = len(value)
+            try:
+                size = len(value)
+            except TypeError as exc:
+                # certain constructor object such as dict, list have a
+                # __len__ method but it throws a TypeError
+                pass
         type_name = type(value).__name__
         print('{:<60}{:>20}{:>7}'.format(attr, type_name, size))
 
@@ -43,10 +46,16 @@ def xdir(obj, attr=None, depth=None, dunder=False, under=True):
 
 
 def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
-            visited=None, current_depth=1, path=''):
+            visited=None, numbers=None, current_depth=1, path=''):
     visited = visited or set()
+    numbers = numbers or set()
 
     if (depth is None) or (current_depth <= depth):
+        if isinstance(obj, Number):
+            if obj in numbers:
+                return
+            else:
+                numbers.add(obj)
         if id(obj) not in visited:
             visited.add(id(obj))
 
@@ -109,6 +118,6 @@ def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
 
                 if val is not BAD and not a.startswith('__'):
                     for sub_a, sub_val in iter_ls(val, attr=attr, depth=depth, dunder=dunder,
-                                                  under=under, visited=visited,
+                                                  under=under, visited=visited, numbers=numbers,
                                                   current_depth=current_depth + 1, path=new_path):
                         yield sub_a, sub_val
