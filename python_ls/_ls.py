@@ -1,4 +1,5 @@
 from collections import Container
+from numbers import Number
 
 try:
     import pandas as pd
@@ -45,10 +46,16 @@ def xdir(obj, attr=None, depth=None, dunder=False, under=True):
 
 
 def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
-            visited=None, current_depth=1, path=''):
+            visited=None, numbers=None, current_depth=1, path=''):
     visited = visited or set()
+    numbers = numbers or set()
 
     if (depth is None) or (current_depth <= depth):
+        if isinstance(obj, Number):
+            if obj in numbers:
+                return
+            else:
+                numbers.add(obj)
         if id(obj) not in visited:
             visited.add(id(obj))
 
@@ -111,6 +118,6 @@ def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
 
                 if val is not BAD and not a.startswith('__'):
                     for sub_a, sub_val in iter_ls(val, attr=attr, depth=depth, dunder=dunder,
-                                                  under=under, visited=visited,
+                                                  under=under, visited=visited, numbers=numbers,
                                                   current_depth=current_depth + 1, path=new_path):
                         yield sub_a, sub_val

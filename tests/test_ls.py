@@ -15,7 +15,8 @@ def test_obj():
     o.foo.bar.aaa = Object()
     o.foo.bar.bbb = Object()
     o.foo.bar._something_else = lambda: None
-    o.foo.bar.constructor_obj = dict
+    o.foo.bar.someconstructor_obj = dict
+    o.foo.bar._lambda = lambda: None
     o.foo.baz = {'something_weird': 'going on', 'blah': 'bleh'}
     o.lala = Object()
     o.lala.lele = Object()
@@ -48,15 +49,13 @@ def test_depth_is_None(test_obj):
         "foo.baz['something_weird']",
         'lala.something',
     ]
-
     actual = [x[0] for x in iter_ls(test_obj, 'something', depth=None)]
     assert actual == expected
 
 
 def test_iter_ls_constructor_obj(test_obj):
-    expected = ['foo.bar.constructor_obj()']
-
-    actual = [x[0] for x in iter_ls(test_obj, 'constructor', depth=None)]
+    expected = ['foo.bar.someconstructor_obj()']
+    actual = [x[0] for x in iter_ls(test_obj, 'someconstructor', depth=None)]
     assert actual == expected
 
 
@@ -73,8 +72,9 @@ def test_basic_ls_usage(test_obj, capsys):
 
 
 def test_ls_constructor_obj(test_obj, capsys):
-    ls(test_obj, 'constructor')
+    ls(test_obj, 'someconstructor')
     out, err = capsys.readouterr()
-    expect = [['foo.bar.constructor_obj()', 'type']]
+    expect = [['foo.bar.someconstructor_obj()', 'type']]
+    import pdb; pdb.set_trace()
     assert expect == [line.split() for line in out.splitlines()]
 
