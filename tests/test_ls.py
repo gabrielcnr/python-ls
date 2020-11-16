@@ -16,7 +16,6 @@ def test_obj():
     o.foo.bar.bbb = Object()
     o.foo.bar._something_else = lambda: None
     o.foo.bar.someconstructor_obj = dict
-    o.foo.bar._lambda = lambda: None
     o.foo.baz = {'something_weird': 'going on', 'blah': 'bleh'}
     o.lala = Object()
     o.lala.lele = Object()
