@@ -1,5 +1,3 @@
-from collections import Container
-
 try:
     import pandas as pd
 except ImportError:
@@ -11,7 +9,7 @@ else:
 BAD = object()
 
 
-def ls(obj, attr=None, depth=None, dunder=False, under=True):
+def ls(obj, attr=None, depth=None, dunder=False, under=True, unsafe=False):
     """
     Run a recursive find for a named attribute
     :param obj: Root object to search
@@ -25,7 +23,7 @@ def ls(obj, attr=None, depth=None, dunder=False, under=True):
         depth = 1
 
     for attr, value in iter_ls(obj, attr=attr, depth=depth,
-                               dunder=dunder, under=under):
+                               dunder=dunder, under=under, unsafe=unsafe):
         size = ''
         if has_pandas and isinstance(value, pd.DataFrame):
             size = '{0}x{1}'.format(*value.shape)
@@ -42,7 +40,7 @@ def xdir(obj, attr=None, depth=None, dunder=False, under=True):
                                        dunder=dunder, under=under)))
 
 
-def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
+def iter_ls(obj, attr=None, depth=1, dunder=False, under=True, unsafe=False,
             visited=None, current_depth=1, path=''):
     visited = visited or set()
 
@@ -96,8 +94,11 @@ def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
                     if isinstance(obj, dict) or (has_pandas and isinstance(obj, pd.DataFrame)):
                         val = obj[a]
                     else:
-                        val = getattr(obj, a)
-                except Exception:
+                        if unsafe or not isinstance(getattr(type(obj), a, None), property):
+                            val = getattr(obj, a)
+                        else:
+                            val = BAD
+                except Exception as exc:
                     val = BAD
 
                 if include(a):
@@ -109,6 +110,6 @@ def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
 
                 if val is not BAD and not a.startswith('__'):
                     for sub_a, sub_val in iter_ls(val, attr=attr, depth=depth, dunder=dunder,
-                                                  under=under, visited=visited,
+                                                  under=under, unsafe=unsafe, visited=visited,
                                                   current_depth=current_depth + 1, path=new_path):
                         yield sub_a, sub_val

@@ -1,9 +1,16 @@
-from python_ls import iter_ls
 import pytest
+
+from python_ls import iter_ls
 
 
 class Object(object):
     pass
+
+
+class Universe:
+    @property
+    def answer(self):
+        return 41 + 1
 
 
 @pytest.fixture
@@ -51,3 +58,12 @@ def test_depth_is_None(test_obj):
     actual = [x[0] for x in iter_ls(test_obj, 'something', depth=None)]
     assert actual == expected
 
+
+def test_ls_unsafe():
+    actual = list(iter_ls(Universe(), unsafe=True))
+    assert ('answer', 42) in actual
+
+
+def test_ls_safe():
+    actual = list(iter_ls(Universe()))
+    assert ('answer', 42) not in actual
