@@ -1,4 +1,7 @@
-from collections import Container
+try:
+    from collections import Container
+except ImportError:
+    from collections.abc import Container
 
 try:
     import pandas as pd
