@@ -1,0 +1,16 @@
+[workspace]
+name = "python-ls"
+version = "0.1.0"
+description = "A better replacement for Python's built-in dir() function"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64"]
+
+[tasks]
+tests = "pytest"
+
+[dependencies]
+python = ">=3.10,<3.14"
+pytest = ">=8"
+
+[pypi-dependencies]
+python-ls = {path = ".", editable = true}

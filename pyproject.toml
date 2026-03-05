@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "python-ls"
+dynamic = ["version"]
+description = "A better replacement for Python's built-in dir() function, with searching in mind"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Gabriel Reis", email = "gabrielcnr@gmail.com"},
+]
+keywords = ["python", "dir", "ls", "search", "attributes"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+pandas = ["pandas"]
+dev = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/gabrielcnr/python-ls"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "python_ls/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["python_ls"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"python_ls.pth" = "python_ls.pth"
+
+[tool.hatch.build.targets.sdist]
+include = ["python_ls/", "python_ls.pth", "tests/", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

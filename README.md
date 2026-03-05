@@ -1,57 +1,97 @@
 # python-ls
-A better replacement for Python's built-in `dir` function with searching in mind.
 
-[![Build Status](https://travis-ci.org/gabrielcnr/python-ls.svg?branch=master)](https://travis-ci.org/gabrielcnr/python-ls)
+A smarter replacement for Python's built-in `dir()` — built for exploring objects interactively.
+
 [![PyPI](https://img.shields.io/pypi/v/python-ls.svg)](https://pypi.python.org/pypi/python-ls)
 [![PythonVersions](https://img.shields.io/pypi/pyversions/python-ls.svg)](https://pypi.python.org/pypi/python-ls)
 
+## What problem does it solve?
 
-Sometimes when you're developing using Python's interactive shell, or IPython, or working with a Jupyter Notebook or even debugging using pdb, you find yourself having to navigate through complex object structures. If you're not entirely familiar with the class in hand you usually have two options: resort to the documentation of the libraries and projects you're working with, or put the explorer's hat on and go down a trial-and-error route, using Python's builtin `dir` function to see which attributes and functions an object may have and then take a good guess on the next object you will be inspecting.
+When working in a Python REPL, IPython session, Jupyter Notebook, or a `pdb` debugging session, you often need to explore unfamiliar objects. Python's built-in `dir()` gives you a flat list of attribute names — but it doesn't search, it doesn't recurse, and it tells you nothing about types or sizes.
 
-There must be a better way, right?
+`ls` fixes that. Given an object and a search term, it walks the object's attribute tree recursively, finds anything whose name contains your term, and prints the results with their types and sizes.
 
-Well, now yes, you have `ls` to help you with that task. If you have rough idea of what you're looking for, you can search for that "thing" by name (fingers crossed here: hopefully the developers of the APIs/libraries you're dealing with were careful enough about their naming conventions). Even if (often) your target object may be a few levels deep down the object structure.
+## Install
 
-`ls` goes recursively through your object structure, it tries to visit attributes searching for the name you're looking for. It also considers dictionary keys if it stumbles across dictionaries, and in the end it prints out the matching occurrences and tells you their types too.
-
-```python
->>> ls(ls, 'code', depth=3)
-func_code                                                                             code
-func_code.co_code                                                                      str    200
-func_code.co_code.decode()                                      builtin_function_or_method
-func_code.co_code.encode()                                      builtin_function_or_method
-func_code.co_filename.decode()                                  builtin_function_or_method
-func_code.co_filename.encode()                                  builtin_function_or_method
-func_code.co_lnotab.decode()                                    builtin_function_or_method
-func_code.co_lnotab.encode()                                    builtin_function_or_method
-func_code.co_name.decode()                                      builtin_function_or_method
-func_code.co_name.encode()                                      builtin_function_or_method
-func_globals['xdir'].func_code                                                        code
-func_globals['iter_ls'].func_code                                                     code
+```
+pip install python-ls
 ```
 
-# Install
+After installation, `ls` is automatically injected into Python's `builtins`, so it's available in any interactive session without any import.
 
-`pip install python-ls`
+## Usage
 
-# `ls` available as builtin
+### Basic: list top-level attributes
 
-`python-ls` will inject the `ls` function in the `__builtin__` namespace at installation step.
+```python
+>>> ls(my_obj)
+```
 
-It does this by using a `.pth` file which simply performs that injection.
+### Search by name across the object tree
 
-# Security
+```python
+>>> ls(my_obj, "price", depth=3)
+order.items[0].price                                           float
+order.items[1].price                                           float
+order.discount.price_threshold                                 float
+```
 
-If you're running this against objects that have properties, lazy attributes or any other dynamic code, keep in mind that `ls` will try to fetch the value of the property/lazy attribute using `getattr()`. This will cause the body of the function to be executed, so you can imagine already the potential hazard here, right?
+### Control recursion depth
 
-**TODO: make a default `unsafe=False` kwarg and then only visit properties if `unsafe` is explicitly set to `True`.**
+```python
+>>> ls(my_obj, depth=2)   # explore 2 levels deep
+>>> ls(my_obj, "name")    # search unlimited depth (depth defaults to None when attr is given)
+```
 
-# About the name `ls`
+### Include private attributes
 
-Python has `dir` as a builtin. The equivalent of that command-line command in GNU/Linux world is `ls`. We had considered calling it `xdir`, which by the way is a function that works like `dir()` by returning a list of occurrences to you.
+```python
+>>> ls(my_obj, under=False)    # include _single_underscore attributes
+>>> ls(my_obj, dunder=True)    # include __dunder__ attributes
+```
 
-# Contribute!
+### Get results as a list instead of printing
 
-Please send your issues, bug reports and, even more welcome, your Pull Requests ;-)
+```python
+>>> xdir(my_obj, "price", depth=3)
+['order.items[0].price', 'order.items[1].price', 'order.discount.price_threshold']
+```
 
-Enjoy!
+### Use the generator directly
+
+```python
+>>> for path, value in iter_ls(my_obj, "price", depth=3):
+...     print(path, value)
+```
+
+## Explicit import
+
+If you prefer to import explicitly rather than rely on the builtin injection:
+
+```python
+from python_ls import ls, xdir, iter_ls
+```
+
+## pandas support
+
+`ls` handles `pandas.DataFrame` objects specially — it searches column names rather than object attributes.
+
+```python
+>>> ls(df, "revenue", depth=2)
+```
+
+## A note on safety
+
+`ls` uses `getattr()` to retrieve attribute values, which will execute any property or lazy attribute code. If you're exploring objects with side-effectful properties, be aware that those will run. A future `unsafe=False` flag to skip properties is planned.
+
+## API
+
+| Function | Description |
+|---|---|
+| `ls(obj, attr=None, depth=None, dunder=False, under=True)` | Print matching attributes with type and size |
+| `xdir(obj, attr=None, depth=None, dunder=False, under=True)` | Return matching attribute paths as a list |
+| `iter_ls(obj, attr=None, depth=None, ...)` | Generator yielding `(path, value)` pairs |
+
+## Contribute
+
+Issues, bug reports, and pull requests are welcome at https://github.com/gabrielcnr/python-ls.
