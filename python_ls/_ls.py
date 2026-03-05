@@ -1,3 +1,4 @@
+import fnmatch
 from collections.abc import Iterator
 from typing import Any
 
@@ -10,6 +11,12 @@ else:
 
 # sentinel for attributes that could not be retrieved
 BAD = object()
+
+_GLOB_CHARS = frozenset("*?[]")
+
+
+def _has_glob_chars(pattern: str) -> bool:
+    return any(c in _GLOB_CHARS for c in pattern)
 
 
 def ls(
@@ -97,7 +104,12 @@ def iter_ls(
                 return all(f(a) for f in filters)
 
             if attr:
-                filters.append(lambda a: attr in a)
+                if _has_glob_chars(attr):
+                    attr_lower = attr.lower()
+                    filters.append(lambda a: fnmatch.fnmatchcase(a.lower(), attr_lower))
+                else:
+                    attr_lower = attr.lower()
+                    filters.append(lambda a: attr_lower in a.lower())
 
             if not dunder:
                 filters.append(lambda a: not a.startswith("__"))
