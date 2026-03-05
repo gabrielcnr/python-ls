@@ -1,7 +1,5 @@
-try:
-    from collections import Container
-except ImportError:
-    from collections.abc import Container
+from collections.abc import Iterator
+from typing import Any
 
 try:
     import pandas as pd
@@ -10,74 +8,102 @@ except ImportError:
 else:
     has_pandas = True
 
-# sentinel
+# sentinel for attributes that could not be retrieved
 BAD = object()
 
 
-def ls(obj, attr=None, depth=None, dunder=False, under=True):
+def ls(
+    obj: Any,
+    attr: str | None = None,
+    depth: int | None = None,
+    dunder: bool = False,
+    under: bool = True,
+) -> None:
     """
-    Run a recursive find for a named attribute
+    Recursively search for a named attribute in an object and print matches.
+
     :param obj: Root object to search
-    :param attr: Name of the attribute to search for
-    :param depth: Maximum search depth, defaults to unlimited
-    :param dunder: If True double underscore prefixed attributes are ignored, default is disabled
-    :param under: If True single underscore prefixed attributes are ignored, default is enabled
-    :return: None
+    :param attr: Name (or partial name) of the attribute to search for
+    :param depth: Maximum search depth, defaults to 1 (no recursion)
+    :param dunder: If True, double-underscore prefixed attributes are included (default: excluded)
+    :param under: If True, single-underscore prefixed attributes are included (default: included)
     """
     if depth is None:
         depth = 1
 
-    for attr, value in iter_ls(obj, attr=attr, depth=depth,
-                               dunder=dunder, under=under):
-        size = ''
+    for attr_path, value in iter_ls(obj, attr=attr, depth=depth, dunder=dunder, under=under):
+        size: int | str = ""
         if has_pandas and isinstance(value, pd.DataFrame):
-            size = '{0}x{1}'.format(*value.shape)
-        elif hasattr(value, '__len__'):
+            size = "{0}x{1}".format(*value.shape)
+        elif hasattr(value, "__len__"):
             size = len(value)
         type_name = type(value).__name__
-        print('{:<60}{:>20}{:>7}'.format(attr, type_name, size))
+        print("{:<60}{:>20}{:>7}".format(attr_path, type_name, size))
 
 
-def xdir(obj, attr=None, depth=None, dunder=False, under=True):
+def xdir(
+    obj: Any,
+    attr: str | None = None,
+    depth: int | None = None,
+    dunder: bool = False,
+    under: bool = True,
+) -> list[str]:
+    """
+    Like ls() but returns a list of matching attribute paths instead of printing.
+
+    :param obj: Root object to search
+    :param attr: Name (or partial name) of the attribute to search for
+    :param depth: Maximum search depth
+    :param dunder: If True, double-underscore prefixed attributes are included
+    :param under: If True, single-underscore prefixed attributes are included
+    :return: List of matching attribute path strings
+    """
     if depth is None and attr is None:
         depth = 1
-    return list((x[0] for x in iter_ls(obj, attr=attr, depth=depth,
-                                       dunder=dunder, under=under)))
+    return [path for path, _ in iter_ls(obj, attr=attr, depth=depth, dunder=dunder, under=under)]
 
 
-def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
-            visited=None, current_depth=1, path=''):
+def iter_ls(
+    obj: Any,
+    attr: str | None = None,
+    depth: int | None = 1,
+    dunder: bool = False,
+    under: bool = True,
+    visited: set[int] | None = None,
+    current_depth: int = 1,
+    path: str = "",
+) -> Iterator[tuple[str, Any]]:
+    """
+    Generator that recursively yields (path, value) pairs for matching attributes.
+
+    :param obj: Root object to search
+    :param attr: Name (or partial name) of the attribute to search for
+    :param depth: Maximum search depth (None for unlimited)
+    :param dunder: If True, double-underscore prefixed attributes are included
+    :param under: If True, single-underscore prefixed attributes are included
+    :param visited: Set of visited object IDs (used internally to avoid cycles)
+    :param current_depth: Current recursion depth (used internally)
+    :param path: Accumulated attribute path (used internally)
+    """
     visited = visited or set()
 
     if (depth is None) or (current_depth <= depth):
         if id(obj) not in visited:
             visited.add(id(obj))
 
-            callbacks = []
+            filters: list = []
 
-            def include(a):
-                for c in callbacks:
-                    if not c(a):
-                        return False
-                return True
-
-            def exclude_dunders(a):
-                return not a.startswith('__')
-
-            def exclude_unders(a):
-                return not a.startswith('_')
-
-            def attr_filter_callback(a):
-                return attr in a
+            def include(a: str) -> bool:
+                return all(f(a) for f in filters)
 
             if attr:
-                callbacks.append(attr_filter_callback)
+                filters.append(lambda a: attr in a)
 
             if not dunder:
-                callbacks.append(exclude_dunders)
+                filters.append(lambda a: not a.startswith("__"))
 
             if not under:
-                callbacks.append(exclude_unders)
+                filters.append(lambda a: not a.startswith("_"))
 
             if isinstance(obj, dict):
                 attrs = [str(k) for k in obj.keys()]
@@ -88,12 +114,9 @@ def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
 
             for a in attrs:
                 if isinstance(obj, dict) or (has_pandas and isinstance(obj, pd.DataFrame)):
-                    new_path = path + '[%r]' % a
+                    new_path = path + "[%r]" % a
                 else:
-                    if path:
-                        new_path = '.'.join([path, a])
-                    else:
-                        new_path = a
+                    new_path = ".".join([path, a]) if path else a
 
                 try:
                     if isinstance(obj, dict) or (has_pandas and isinstance(obj, pd.DataFrame)):
@@ -104,14 +127,17 @@ def iter_ls(obj, attr=None, depth=1, dunder=False, under=True,
                     val = BAD
 
                 if include(a):
-                    suffix = ''
-                    if val is not BAD:
-                        if callable(val):
-                            suffix = '()'
+                    suffix = "()" if val is not BAD and callable(val) else ""
                     yield new_path + suffix, val
 
-                if val is not BAD and not a.startswith('__'):
-                    for sub_a, sub_val in iter_ls(val, attr=attr, depth=depth, dunder=dunder,
-                                                  under=under, visited=visited,
-                                                  current_depth=current_depth + 1, path=new_path):
-                        yield sub_a, sub_val
+                if val is not BAD and not a.startswith("__"):
+                    yield from iter_ls(
+                        val,
+                        attr=attr,
+                        depth=depth,
+                        dunder=dunder,
+                        under=under,
+                        visited=visited,
+                        current_depth=current_depth + 1,
+                        path=new_path,
+                    )
