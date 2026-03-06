@@ -106,3 +106,52 @@ class TestAttrGlobPattern:
         attrs = [path for path, _ in iter_ls(test_obj, "FO*", depth=1)]
         assert "foo" in attrs
 
+
+class TestTypeFilter:
+    def test_filter_by_single_type(self):
+        o = Object()
+        o.x = 42
+        o.y = "hello"
+        o.z = 3.14
+        result = [path for path, _ in iter_ls(o, type=int)]
+        assert result == ["x"]
+
+    def test_filter_by_tuple_of_types(self):
+        o = Object()
+        o.x = 42
+        o.y = "hello"
+        o.z = 3.14
+        result = [path for path, _ in iter_ls(o, type=(int, str))]
+        assert result == ["x", "y"]
+
+    def test_filter_by_string(self):
+        o = Object()
+        o.x = 42
+        o.y = "hello"
+        o.z = 3.14
+        result = [path for path, _ in iter_ls(o, type="int")]
+        assert result == ["x"]
+
+    def test_filter_by_string_case_insensitive(self):
+        o = Object()
+        o.x = 42
+        o.y = "hello"
+        result = [path for path, _ in iter_ls(o, type="INT")]
+        assert result == ["x"]
+
+    def test_filter_by_glob_pattern(self):
+        o = Object()
+        o.a = Object()
+        o.b = 42
+        o.c = "hello"
+        result = [path for path, _ in iter_ls(o, type="Obj*")]
+        assert result == ["a"]
+
+    def test_combined_attr_and_type(self):
+        o = Object()
+        o.foo_int = 42
+        o.foo_str = "hello"
+        o.bar_int = 99
+        result = [path for path, _ in iter_ls(o, attr="foo", type=int)]
+        assert result == ["foo_int"]
+
