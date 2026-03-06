@@ -1,5 +1,8 @@
+import fnmatch
 from collections.abc import Iterator
 from typing import Any
+
+_type = type
 
 try:
     import pandas as pd
@@ -11,6 +14,12 @@ else:
 # sentinel for attributes that could not be retrieved
 BAD = object()
 
+_GLOB_CHARS = frozenset("*?[]")
+
+
+def _has_glob_chars(pattern: str) -> bool:
+    return any(c in _GLOB_CHARS for c in pattern)
+
 
 def ls(
     obj: Any,
@@ -18,6 +27,7 @@ def ls(
     depth: int | None = None,
     dunder: bool = False,
     under: bool = True,
+    type: type | tuple[type, ...] | str | None = None,
 ) -> None:
     """
     Recursively search for a named attribute in an object and print matches.
@@ -31,13 +41,13 @@ def ls(
     if depth is None:
         depth = 1
 
-    for attr_path, value in iter_ls(obj, attr=attr, depth=depth, dunder=dunder, under=under):
+    for attr_path, value in iter_ls(obj, attr=attr, depth=depth, dunder=dunder, under=under, type=type):
         size: int | str = ""
         if has_pandas and isinstance(value, pd.DataFrame):
             size = "{0}x{1}".format(*value.shape)
         elif hasattr(value, "__len__"):
             size = len(value)
-        type_name = type(value).__name__
+        type_name = _type(value).__name__
         print("{:<60}{:>20}{:>7}".format(attr_path, type_name, size))
 
 
@@ -47,6 +57,7 @@ def xdir(
     depth: int | None = None,
     dunder: bool = False,
     under: bool = True,
+    type: type | tuple[type, ...] | str | None = None,
 ) -> list[str]:
     """
     Like ls() but returns a list of matching attribute paths instead of printing.
@@ -60,7 +71,7 @@ def xdir(
     """
     if depth is None and attr is None:
         depth = 1
-    return [path for path, _ in iter_ls(obj, attr=attr, depth=depth, dunder=dunder, under=under)]
+    return [path for path, _ in iter_ls(obj, attr=attr, depth=depth, dunder=dunder, under=under, type=type)]
 
 
 def iter_ls(
@@ -69,6 +80,7 @@ def iter_ls(
     depth: int | None = 1,
     dunder: bool = False,
     under: bool = True,
+    type: type | tuple[type, ...] | str | None = None,
     visited: set[int] | None = None,
     current_depth: int = 1,
     path: str = "",
@@ -97,7 +109,12 @@ def iter_ls(
                 return all(f(a) for f in filters)
 
             if attr:
-                filters.append(lambda a: attr in a)
+                if _has_glob_chars(attr):
+                    attr_lower = attr.lower()
+                    filters.append(lambda a: fnmatch.fnmatchcase(a.lower(), attr_lower))
+                else:
+                    attr_lower = attr.lower()
+                    filters.append(lambda a: attr_lower in a.lower())
 
             if not dunder:
                 filters.append(lambda a: not a.startswith("__"))
@@ -127,6 +144,17 @@ def iter_ls(
                     val = BAD
 
                 if include(a):
+                    if type is not None and val is not BAD:
+                        if isinstance(type, str):
+                            val_type_name = _type(val).__name__.lower()
+                            if _has_glob_chars(type):
+                                type_match = fnmatch.fnmatchcase(val_type_name, type.lower())
+                            else:
+                                type_match = type.lower() in val_type_name
+                        else:
+                            type_match = isinstance(val, type)
+                        if not type_match:
+                            continue
                     suffix = "()" if val is not BAD and callable(val) else ""
                     yield new_path + suffix, val
 
@@ -137,6 +165,7 @@ def iter_ls(
                         depth=depth,
                         dunder=dunder,
                         under=under,
+                        type=type,
                         visited=visited,
                         current_depth=current_depth + 1,
                         path=new_path,
