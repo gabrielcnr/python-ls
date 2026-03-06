@@ -31,8 +31,12 @@ class PropertyInfo:
         self.type_hint = type_hint
 
 
+def _get_mro(obj: Any) -> tuple[type, ...]:
+    return obj.__mro__ if isinstance(obj, _type) else _type(obj).__mro__
+
+
 def _is_property(obj: Any, attr_name: str) -> bool:
-    for cls in _type(obj).__mro__:
+    for cls in _get_mro(obj):
         if attr_name in cls.__dict__ and isinstance(cls.__dict__[attr_name], property):
             return True
     return False
@@ -40,14 +44,15 @@ def _is_property(obj: Any, attr_name: str) -> bool:
 
 def _get_property_type_hint(obj: Any, attr_name: str) -> type | None:
     # Try class-level annotations
+    owner = obj if isinstance(obj, _type) else _type(obj)
     try:
-        hints = typing.get_type_hints(_type(obj))
+        hints = typing.get_type_hints(owner)
         if attr_name in hints:
             return hints[attr_name]
     except Exception:
         pass
     # Try the property getter's return annotation
-    for cls in _type(obj).__mro__:
+    for cls in _get_mro(obj):
         if attr_name in cls.__dict__:
             prop = cls.__dict__[attr_name]
             if isinstance(prop, property) and prop.fget is not None:
@@ -229,7 +234,22 @@ def iter_ls(
                     suffix = "()" if val is not BAD and not isinstance(val, PropertyInfo) and callable(val) else ""
                     yield new_path + suffix, val
 
-                if val is not BAD and not isinstance(val, PropertyInfo) and not a.startswith("__"):
+                if val is not BAD and not a.startswith("__"):
+                    if isinstance(val, PropertyInfo):
+                        # Best-effort: recurse into the type hint's class namespace
+                        if val.type_hint is not None and isinstance(val.type_hint, _type):
+                            yield from iter_ls(
+                                val.type_hint,
+                                attr=attr,
+                                depth=depth,
+                                dunder=dunder,
+                                under=under,
+                                type=type,
+                                visited=visited,
+                                current_depth=current_depth + 1,
+                                path=new_path,
+                            )
+                        continue
                     yield from iter_ls(
                         val,
                         attr=attr,

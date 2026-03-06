@@ -220,8 +220,8 @@ class TestPropertySafety:
         assert "name" in paths
         assert "name()" not in paths
 
-    def test_property_no_recursion(self):
-        """Should not recurse into property values (since they are not evaluated)."""
+    def test_property_recurse_via_type_hint(self):
+        """Properties with type hints should recurse into the class namespace."""
         class Inner:
             x = 42
 
@@ -232,8 +232,7 @@ class TestPropertySafety:
 
         result = [p for p, _ in iter_ls(Obj(), depth=3)]
         assert "inner" in result
-        # Should NOT contain inner.x since we didn't evaluate the property
-        assert not any(p.startswith("inner.") for p in result)
+        assert "inner.x" in result
 
     def test_property_type_filter_with_hint(self):
         """Type filter should work with property type hints."""
@@ -285,4 +284,67 @@ class TestPropertySafety:
         val = next(v for p, v in result if p == "value")
         assert isinstance(val, PropertyInfo)
         assert val.type_hint is int
+
+    def test_property_recurse_into_type_hint(self):
+        """When a property has a type hint, recurse into the class namespace."""
+        class Inner:
+            x = 42
+            y = "hello"
+
+        class Obj:
+            @property
+            def inner(self) -> Inner:
+                raise RuntimeError("should not be called")
+
+        result = [p for p, _ in iter_ls(Obj(), depth=2)]
+        assert "inner" in result
+        assert "inner.x" in result
+        assert "inner.y" in result
+
+    def test_property_recurse_search_attr(self):
+        """Recursive attr search should find attributes through property type hints."""
+        class Inner:
+            target = 42
+
+        class Obj:
+            @property
+            def inner(self) -> Inner:
+                raise RuntimeError("should not be called")
+
+        result = [p for p, _ in iter_ls(Obj(), attr="target", depth=None)]
+        assert "inner.target" in result
+
+    def test_property_recurse_no_hint_no_recursion(self):
+        """Properties without type hints should not recurse."""
+        class Inner:
+            x = 42
+
+        class Obj:
+            @property
+            def inner(self):
+                raise RuntimeError("should not be called")
+
+        result = [p for p, _ in iter_ls(Obj(), depth=2)]
+        assert "inner" in result
+        assert not any(p.startswith("inner.") for p in result)
+
+    def test_property_recurse_nested_properties(self):
+        """Nested properties on the hinted type should also be safe."""
+        class Deep:
+            z = 99
+
+        class Inner:
+            @property
+            def deep(self) -> Deep:
+                raise RuntimeError("should not be called")
+
+        class Obj:
+            @property
+            def inner(self) -> Inner:
+                raise RuntimeError("should not be called")
+
+        result = [p for p, _ in iter_ls(Obj(), depth=3)]
+        assert "inner" in result
+        assert "inner.deep" in result
+        assert "inner.deep.z" in result
 
