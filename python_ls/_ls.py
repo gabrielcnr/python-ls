@@ -37,7 +37,7 @@ def _get_mro(obj: Any) -> tuple[type, ...]:
 
 def _is_property(obj: Any, attr_name: str) -> bool:
     for cls in _get_mro(obj):
-        if attr_name in cls.__dict__ and isinstance(cls.__dict__[attr_name], property):
+        if attr_name in vars(cls) and isinstance(vars(cls)[attr_name], property):
             return True
     return False
 
@@ -53,8 +53,8 @@ def _get_property_type_hint(obj: Any, attr_name: str) -> type | None:
         pass
     # Try the property getter's return annotation
     for cls in _get_mro(obj):
-        if attr_name in cls.__dict__:
-            prop = cls.__dict__[attr_name]
+        if attr_name in vars(cls):
+            prop = vars(cls)[attr_name]
             if isinstance(prop, property) and prop.fget is not None:
                 try:
                     hints = typing.get_type_hints(prop.fget)
