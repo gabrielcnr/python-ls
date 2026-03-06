@@ -1,4 +1,4 @@
-from python_ls import iter_ls
+from python_ls import PropertyInfo, iter_ls
 from python_ls._ls import _has_glob_chars
 import pytest
 
@@ -154,4 +154,135 @@ class TestTypeFilter:
         o.bar_int = 99
         result = [path for path, _ in iter_ls(o, attr="foo", type=int)]
         assert result == ["foo_int"]
+
+
+class TestPropertySafety:
+    def test_property_not_evaluated(self):
+        """Property getter should not be called during ls."""
+        class Obj:
+            @property
+            def dangerous(self) -> str:
+                raise RuntimeError("should not be called")
+
+        result = list(iter_ls(Obj()))
+        paths = [p for p, _ in result]
+        assert "dangerous" in paths
+        val = next(v for p, v in result if p == "dangerous")
+        assert isinstance(val, PropertyInfo)
+
+    def test_property_with_return_type_hint(self):
+        """PropertyInfo should carry the type hint from the getter."""
+        class Obj:
+            @property
+            def name(self) -> str:
+                return "hello"
+
+        result = list(iter_ls(Obj()))
+        val = next(v for p, v in result if p == "name")
+        assert isinstance(val, PropertyInfo)
+        assert val.type_hint is str
+
+    def test_property_without_type_hint(self):
+        """PropertyInfo with no annotation should have type_hint=None."""
+        class Obj:
+            @property
+            def name(self):
+                return "hello"
+
+        result = list(iter_ls(Obj()))
+        val = next(v for p, v in result if p == "name")
+        assert isinstance(val, PropertyInfo)
+        assert val.type_hint is None
+
+    def test_property_class_annotation(self):
+        """Type hint from class-level annotation should be picked up."""
+        class Obj:
+            name: int
+
+            @property
+            def name(self):
+                return 42
+
+        result = list(iter_ls(Obj()))
+        val = next(v for p, v in result if p == "name")
+        assert isinstance(val, PropertyInfo)
+        assert val.type_hint is int
+
+    def test_property_no_callable_suffix(self):
+        """Properties should not get the '()' suffix."""
+        class Obj:
+            @property
+            def name(self) -> str:
+                return "hello"
+
+        result = list(iter_ls(Obj()))
+        paths = [p for p, _ in result]
+        assert "name" in paths
+        assert "name()" not in paths
+
+    def test_property_no_recursion(self):
+        """Should not recurse into property values (since they are not evaluated)."""
+        class Inner:
+            x = 42
+
+        class Obj:
+            @property
+            def inner(self) -> Inner:
+                return Inner()
+
+        result = [p for p, _ in iter_ls(Obj(), depth=3)]
+        assert "inner" in result
+        # Should NOT contain inner.x since we didn't evaluate the property
+        assert not any(p.startswith("inner.") for p in result)
+
+    def test_property_type_filter_with_hint(self):
+        """Type filter should work with property type hints."""
+        class Obj:
+            x = 42
+
+            @property
+            def name(self) -> str:
+                return "hello"
+
+        result = [p for p, _ in iter_ls(Obj(), type=str)]
+        assert "name" in result
+
+    def test_property_type_filter_string_with_hint(self):
+        """String type filter should match against property type hint name."""
+        class Obj:
+            x = 42
+
+            @property
+            def name(self) -> str:
+                return "hello"
+
+        result = [p for p, _ in iter_ls(Obj(), type="str")]
+        assert "name" in result
+
+    def test_property_type_filter_no_hint_excluded(self):
+        """Properties without type hints should be excluded by type filters."""
+        class Obj:
+            x = 42
+
+            @property
+            def name(self):
+                return "hello"
+
+        result = [p for p, _ in iter_ls(Obj(), type=str)]
+        assert "name" not in result
+
+    def test_inherited_property(self):
+        """Properties from parent classes should be detected."""
+        class Base:
+            @property
+            def value(self) -> int:
+                raise RuntimeError("should not be called")
+
+        class Child(Base):
+            pass
+
+        result = list(iter_ls(Child()))
+        val = next(v for p, v in result if p == "value")
+        assert isinstance(val, PropertyInfo)
+        assert val.type_hint is int
 
