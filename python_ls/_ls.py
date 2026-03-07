@@ -78,6 +78,19 @@ def _type_hint_name(hint: Any) -> str:
     return str(hint)
 
 
+_VALUE_MAX_WIDTH = 40
+
+
+def _truncate_repr(value: Any, max_width: int = _VALUE_MAX_WIDTH) -> str:
+    try:
+        r = repr(value)
+    except Exception:
+        return "<?>"
+    if len(r) > max_width:
+        return r[: max_width - 3] + "..."
+    return r
+
+
 def ls(
     obj: Any,
     attr: str | None = None,
@@ -85,6 +98,7 @@ def ls(
     dunder: bool = False,
     under: bool = True,
     type: type | tuple[type, ...] | str | None = None,
+    value: bool = False,
 ) -> None:
     """
     Recursively search for a named attribute in an object and print matches.
@@ -94,25 +108,32 @@ def ls(
     :param depth: Maximum search depth, defaults to 1 (no recursion)
     :param dunder: If True, double-underscore prefixed attributes are included (default: excluded)
     :param under: If True, single-underscore prefixed attributes are included (default: included)
+    :param value: If True, show a truncated repr of each attribute's value
     """
     if depth is None:
         depth = 1
 
-    for attr_path, value in iter_ls(obj, attr=attr, depth=depth, dunder=dunder, under=under, type=type):
+    for attr_path, val in iter_ls(obj, attr=attr, depth=depth, dunder=dunder, under=under, type=type):
         size: int | str = ""
-        if isinstance(value, PropertyInfo):
-            if value.type_hint is not None:
-                type_name = f"property[{_type_hint_name(value.type_hint)}]"
+        if isinstance(val, PropertyInfo):
+            if val.type_hint is not None:
+                type_name = f"property[{_type_hint_name(val.type_hint)}]"
             else:
                 type_name = "property"
-        elif has_pandas and isinstance(value, pd.DataFrame):
-            size = "{0}x{1}".format(*value.shape)
-            type_name = _type(value).__name__
+        elif has_pandas and isinstance(val, pd.DataFrame):
+            size = "{0}x{1}".format(*val.shape)
+            type_name = _type(val).__name__
         else:
-            if hasattr(value, "__len__"):
-                size = len(value)
-            type_name = _type(value).__name__
-        print("{:<60}{:>20}{:>7}".format(attr_path, type_name, size))
+            if hasattr(val, "__len__"):
+                size = len(val)
+            type_name = _type(val).__name__
+        line = "{:<60}{:>20}{:>7}".format(attr_path, type_name, size)
+        if value:
+            if isinstance(val, PropertyInfo):
+                line += "  <property>"
+            else:
+                line += "  " + _truncate_repr(val)
+        print(line)
 
 
 def xdir(
