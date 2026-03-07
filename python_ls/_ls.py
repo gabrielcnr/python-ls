@@ -35,14 +35,16 @@ def _get_mro(obj: Any) -> tuple[type, ...]:
     return obj.__mro__ if isinstance(obj, _type) else _type(obj).__mro__
 
 
-def _is_property(obj: Any, attr_name: str) -> bool:
+def _get_property_names(obj: Any) -> frozenset[str]:
     try:
-        for cls in _get_mro(obj):
-            if attr_name in vars(cls) and isinstance(vars(cls)[attr_name], property):
-                return True
+        return frozenset(
+            name
+            for cls in _get_mro(obj)
+            for name, val in vars(cls).items()
+            if isinstance(val, property)
+        )
     except TypeError:
-        pass
-    return False
+        return frozenset()
 
 
 def _get_property_type_hint(obj: Any, attr_name: str) -> type | None:
@@ -184,25 +186,25 @@ def iter_ls(
             if not under:
                 filters.append(lambda a: not a.startswith("_"))
 
-            if isinstance(obj, dict):
-                attrs = [str(k) for k in obj.keys()]
-            elif has_pandas and isinstance(obj, pd.DataFrame):
-                attrs = [str(c) for c in obj.columns]
+            is_dict_like = isinstance(obj, dict) or (has_pandas and isinstance(obj, pd.DataFrame))
+
+            if is_dict_like:
+                attrs = [str(k) for k in (obj.columns if has_pandas and isinstance(obj, pd.DataFrame) else obj.keys())]
+                property_names = frozenset()
             else:
                 attrs = dir(obj)
+                property_names = _get_property_names(obj)
 
             for a in attrs:
-                if isinstance(obj, dict) or (has_pandas and isinstance(obj, pd.DataFrame)):
+                if is_dict_like:
                     new_path = path + "[%r]" % a
                 else:
                     new_path = ".".join([path, a]) if path else a
 
-                is_dict_like = isinstance(obj, dict) or (has_pandas and isinstance(obj, pd.DataFrame))
-
                 try:
                     if is_dict_like:
                         val = obj[a]
-                    elif _is_property(obj, a):
+                    elif a in property_names:
                         hint = _get_property_type_hint(obj, a)
                         val = PropertyInfo(type_hint=hint)
                     else:
