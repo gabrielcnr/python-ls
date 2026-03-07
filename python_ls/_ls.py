@@ -159,6 +159,26 @@ def xdir(
     return [path for path, _ in iter_ls(obj, attr=attr, depth=depth, dunder=dunder, under=under, type=type)]
 
 
+def _build_filters(
+    attr: str | None,
+    dunder: bool,
+    under: bool,
+) -> list:
+    filters: list = []
+    if attr:
+        if _has_glob_chars(attr):
+            attr_lower = attr.lower()
+            filters.append(lambda a: fnmatch.fnmatchcase(a.lower(), attr_lower))
+        else:
+            attr_lower = attr.lower()
+            filters.append(lambda a: attr_lower in a.lower())
+    if not dunder:
+        filters.append(lambda a: not a.startswith("__"))
+    if not under:
+        filters.append(lambda a: not a.startswith("_"))
+    return filters
+
+
 def iter_ls(
     obj: Any,
     attr: str | None = None,
@@ -169,6 +189,7 @@ def iter_ls(
     visited: set[int] | None = None,
     current_depth: int = 1,
     path: str = "",
+    _filters: list | None = None,
 ) -> Iterator[tuple[str, Any]]:
     """
     Generator that recursively yields (path, value) pairs for matching attributes.
@@ -184,28 +205,15 @@ def iter_ls(
     """
     visited = visited or set()
 
+    if _filters is None:
+        _filters = _build_filters(attr, dunder, under)
+
+    def include(a: str) -> bool:
+        return all(f(a) for f in _filters)
+
     if (depth is None) or (current_depth <= depth):
         if id(obj) not in visited:
             visited.add(id(obj))
-
-            filters: list = []
-
-            def include(a: str) -> bool:
-                return all(f(a) for f in filters)
-
-            if attr:
-                if _has_glob_chars(attr):
-                    attr_lower = attr.lower()
-                    filters.append(lambda a: fnmatch.fnmatchcase(a.lower(), attr_lower))
-                else:
-                    attr_lower = attr.lower()
-                    filters.append(lambda a: attr_lower in a.lower())
-
-            if not dunder:
-                filters.append(lambda a: not a.startswith("__"))
-
-            if not under:
-                filters.append(lambda a: not a.startswith("_"))
 
             is_dict_like = isinstance(obj, dict) or (has_pandas and isinstance(obj, pd.DataFrame))
 
@@ -277,6 +285,7 @@ def iter_ls(
                                 visited=visited,
                                 current_depth=current_depth + 1,
                                 path=new_path,
+                                _filters=_filters,
                             )
                         continue
                     yield from iter_ls(
@@ -289,4 +298,5 @@ def iter_ls(
                         visited=visited,
                         current_depth=current_depth + 1,
                         path=new_path,
+                        _filters=_filters,
                     )
