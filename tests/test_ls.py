@@ -1,5 +1,5 @@
 from python_ls import PropertyInfo, iter_ls
-from python_ls._ls import _has_glob_chars
+from python_ls._ls import _has_glob_chars, _truncate_repr, ls
 import pytest
 
 
@@ -379,4 +379,62 @@ class TestCExtensionTypes:
         paths = [p for p, _ in result]
         assert "real" in paths
         assert "imag" in paths
+
+
+class TestTruncateRepr:
+    def test_short_value(self):
+        assert _truncate_repr(42) == "42"
+
+    def test_string_value(self):
+        assert _truncate_repr("hello") == "'hello'"
+
+    def test_long_value_truncated(self):
+        long_list = list(range(100))
+        result = _truncate_repr(long_list, max_width=20)
+        assert len(result) == 20
+        assert result.endswith("...")
+
+    def test_repr_error(self):
+        class Bad:
+            def __repr__(self):
+                raise RuntimeError("boom")
+
+        assert _truncate_repr(Bad()) == "<?>"
+
+
+class TestValueDisplay:
+    def test_value_false_by_default(self, capsys):
+        o = Object()
+        o.x = 42
+        ls(o)
+        output = capsys.readouterr().out
+        assert "42" not in output
+
+    def test_value_true_shows_repr(self, capsys):
+        o = Object()
+        o.x = 42
+        o.y = "hello"
+        ls(o, value=True)
+        output = capsys.readouterr().out
+        assert "42" in output
+        assert "'hello'" in output
+
+    def test_value_property_shows_placeholder(self, capsys):
+        class Obj:
+            @property
+            def name(self) -> str:
+                raise RuntimeError("should not be called")
+
+        ls(Obj(), value=True)
+        output = capsys.readouterr().out
+        assert "<property>" in output
+
+    def test_value_long_repr_truncated(self, capsys):
+        o = Object()
+        o.data = "a" * 200
+        ls(o, value=True)
+        output = capsys.readouterr().out
+        assert "..." in output
+        # Full repr would be 202 chars ('a...a'), should be truncated
+        assert "a" * 200 not in output
 
