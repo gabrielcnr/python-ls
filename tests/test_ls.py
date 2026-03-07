@@ -348,3 +348,35 @@ class TestPropertySafety:
         assert "inner.deep" in result
         assert "inner.deep.z" in result
 
+
+class TestCExtensionTypes:
+    def test_ls_datetime(self):
+        """C extension objects like datetime should not crash."""
+        import datetime
+
+        result = list(iter_ls(datetime.datetime.now()))
+        paths = [p for p, _ in result]
+        assert "year" in paths
+        assert "month" in paths
+        assert "day" in paths
+
+    def test_ls_slots_object(self):
+        """Objects with __slots__ and no __dict__ should work."""
+        class Slotted:
+            __slots__ = ("x", "y")
+
+        obj = Slotted()
+        obj.x = 42
+        obj.y = "hello"
+        result = list(iter_ls(obj))
+        paths = [p for p, _ in result]
+        assert "x" in paths
+        assert "y" in paths
+
+    def test_ls_int(self):
+        """Builtin types like int should not crash."""
+        result = list(iter_ls(42))
+        paths = [p for p, _ in result]
+        assert "real" in paths
+        assert "imag" in paths
+
